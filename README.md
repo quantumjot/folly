@@ -1,6 +1,6 @@
 # Old code saved for posterity
 
-These are listings from programs published in Acorn User magazine 1996-1998. Written in a combination of BBC BASIC V and ARM assembly language.  These are mostly experiments in computer graphics.
+These are listings from programs I wrote that were published in Acorn User magazine 1996-1998. These are mostly experiments in computer graphics, written in a combination of BBC BASIC V and ARM assembly language.
 
 
 <img src="./output.gif" />  
