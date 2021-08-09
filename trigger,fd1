@@ -1,0 +1,54 @@
+REM Trigger
+REM Weirdsville!
+
+MODE 12
+OFF
+
+ORIGIN 640,480
+
+PROCinit
+
+REPEAT
+    PROCrot
+    PROCbanks
+UNTIL FALSE
+
+END
+
+DEF PROCinit
+DIM grid(10,2)
+DIM gridrot(10,2)
+bank1=1
+bank2=2
+MOUSE ON
+
+FOR x=0 TO 10
+    FOR y=0 TO 10
+        grid(x,1)=30*x
+        grid(y,2)=30*y
+    NEXT y
+NEXT x
+angle=0
+
+ENDPROC
+
+DEF PROCrot
+FOR x=0 TO 10
+    FOR y=0 TO 10
+        MOUSE j,h,k
+        gridrot(x,1)=grid(x,1)+j*SIN(RAD angle)
+        gridrot(y,2)=grid(y,2)+j*COS(RAD angle)
+        angle=angle+h/10
+        PLOT 69,gridrot(x,1)-150,gridrot(y,2)-150
+    NEXT y
+NEXT x
+ENDPROC
+
+DEF PROCbanks
+SYS 6,112,bank1
+SYS 6,113,bank2
+WAIT
+WAIT
+CLS
+SWAP bank1,bank2
+ENDPROC

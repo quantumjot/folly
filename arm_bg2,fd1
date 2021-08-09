@@ -1,0 +1,139 @@
+REM warping background display
+REM (c) alan lowe, 1997
+
+PROCinitialise
+PROCcreate_sin_and_cos
+PROCassemble
+
+CLS
+REPEAT
+ FOR C%=0 TO 360 STEP 4
+  E%=1
+  CALL code%
+ NEXT C%
+UNTIL FALSE
+END
+
+DEF PROCinitialise
+ MODE 15:MODE 13:OFF
+ DIM texture% 81920+56
+ DIM code% 4096
+ DIM block% 27
+ DIM sine_table% 360*8
+ DIM cosine_table% 360*8
+ DIM stack% 256
+ block%!0=148
+ block%!4=7
+ block%!8=-1
+ SYS "OS_ReadVduVariables",block%,block%+12
+ screen_base%=block%!12
+OSCLI"LOAD <bgdistort$dir>.export "+STR$~(texture%)
+ENDPROC
+
+DEF PROCcreate_sin_and_cos
+ counter%=0
+ FOR angle=0 TO 360*2 STEP 1
+  sine_table%!(counter%)=128+100*SIN(RAD angle)*COS(RAD angle)
+  cosine_table%!(counter%)=128+100*COS(RAD angle)*COS(RAD angle)
+  counter%+=4
+ NEXT angle
+ENDPROC
+
+DEF PROCassemble
+FOR pass=0 TO 2 STEP 2
+P%=code%
+[
+          OPT       pass
+.return   EQUD      0
+.stack    EQUD      stack%
+.screen   EQUD      screen_base%
+.sint     EQUD      sine_table%
+.cost     EQUD      cosine_table%
+.texture  EQUD      texture%
+.num287   EQUD      287
+
+.start    STR       r14,return
+          LDR       r12,stack
+          MOV       r0,#32
+          MOV       r1,#0
+          MOV       r2,#0
+.loop     LDR       r11,screen
+          CMP       r4,#1
+          ;ADDEQ     r11,r11,#81920
+          ADD       r9,r1,r1,LSL #2
+          ADD       r9,r11,r9,LSL #6
+          BL        getxandy
+          STRB      r10,[r9,r0]
+          ADD       r0,r0,#1
+          LDR       r5,num287
+          CMP       r0,r5
+          BLT       loop
+          MOV       r0,#32
+          ADD       r1,r1,#1
+          CMP       r1,#255
+          BLT       loop
+          ADD       r2,r2,#4
+          MOV       r1,#0
+          CMP       r2,#356
+          BLE       loop
+.finish   LDR       r15,return
+
+; on entry r0=x , r1=y , r2=wobble factor
+; on exit  r10=colour
+
+.getxandy STMIA     r12!,{r14,r0-r9,r11}
+
+          LDR       r11,sint
+          ADD       r3,r0,r2
+          MOV       r3,r3,LSL #2
+          LDR       r4,[r11,r3]
+          MUL       r3,r4,r1
+          MOV       r3,r3,LSR #8
+          ADD       r8,r3,r0  ;         r8=x coordinate
+          LDR       r11,cost
+          ADD       r3,r1,r2
+          MOV       r3,r3,LSL #2
+          LDR       r4,[r11,r3]
+          MUL       r3,r4,r0
+          MOV       r3,r3,LSR #8
+          ADD       r9,r3,r1  ;         r9=y coordinate
+
+          MOV       r0,#320
+          MOV       r1,#0
+          MOV       r2,#255
+
+          MOV       r8,r8,LSR #1
+          MOV       r9,r9,LSR #1
+
+          LDR       r11,texture
+          ADD       r11,r11,#56
+
+          ADD       r7,r9,r9,LSL #2
+          ADD       r7,r11,r7,LSL #6
+          LDRB      r10,[r7,r8]
+
+          LDMDB     r12!,{r0-r9,r11,PC}
+
+
+]
+NEXT pass
+ENDPROC
+
+DEF PROCloadsprites(spritefile$,makearray$)
+O$="OS_SpriteOp"
+file%=OPENIN(spritefile$)
+size%=EXT#file%+64
+CLOSE#file%
+IF makearray$="Y" THEN PROCmakearray(size%)
+SYS O$,256+9,area%
+SYS O$,256+10,area%,spritefile$
+ENDPROC
+
+DEF PROCmakearray(size%)
+DIM area% size%
+area%!0=size%
+ENDPROC
+
+DEF PROCps(sprite$,X,Y,mask)
+SYS O$,256+34,area%,sprite$,X,Y,mask
+ENDPROC
